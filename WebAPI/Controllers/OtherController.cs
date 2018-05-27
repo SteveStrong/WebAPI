@@ -27,7 +27,11 @@ namespace WebAPI.Controllers
 
            // var stringTask = client.GetStringAsync("https://api.github.com/orgs/dotnet/repos");
             //var streamTask = client.GetStreamAsync("http://localhost:3002/api/OtherValues");
-            var streamTask = client.GetStreamAsync("/webapiother");           var results = serializer.ReadObject(await streamTask) as List<String>;
+            
+            //var streamTask = client.GetStreamAsync("http://localhost:4001/webapiother");           
+            
+            var streamTask = client.GetStreamAsync("https://api.github.com/orgs/dotnet/repos");
+            var results = serializer.ReadObject(await streamTask) as List<object>;
             return results;
         }
 
