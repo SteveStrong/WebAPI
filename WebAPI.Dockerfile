@@ -22,3 +22,7 @@ ENTRYPOINT ["dotnet", "WebAPI.dll"]
 
 # docker build -t webapi -f WebAPI.Dockerfile .
 # docker run -d -p 3001:80 --name webapi webapi
+
+
+# docker tag webapi  acmfimages.azurecr.io/webapi 
+# docker push acmfimages.azurecr.io/webapi 
