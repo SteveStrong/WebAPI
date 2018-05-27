@@ -1,0 +1,52 @@
+#!groovy
+PROJECT_NAME = "${currentBuild.rawBuild.project.parent.displayName.toLowerCase()}"
+BRANCH_NAME = "${env.BRANCH_NAME.replaceAll(/[\/]/, '-').toLowerCase()}"
+
+service_name = "${PROJECT_NAME}-${BRANCH_NAME}";
+ocp_project_name = "${env.OCP_ACMF_DEV_NS}";
+ocp_tag_name = "${BRANCH_NAME}-${env.BUILD_ID}";
+
+pipeline {
+  agent any
+
+  tools {
+    nodejs 'NodeJS 7.4.0'
+  }
+
+  stages {
+    stage("Build Image and Publish to Nexus") {
+      steps {
+        script {
+          sh "docker build . -t ${PROJECT_NAME}:${ocp_tag_name} -f WebAPI.Dockerfile"
+          def image = docker.image("${PROJECT_NAME}:${ocp_tag_name}")
+          docker.withRegistry("https://${env.NEXUS_DEV_DOCKER_REGISTRY}", 'NEXUS_AUTH') {
+            image.push()
+          }
+        }
+      }
+    }
+
+    stage("Deploy to Openshift") {
+      steps {
+        script {
+
+          echo "service name = ${service_name}"
+          echo "project = ${ocp_project_name}"
+          echo "tag = ${ocp_tag_name}"
+          try {
+            withCredentials([usernamePassword(credentialsId: 'OCP_AUTH', usernameVariable: 'OCP_USERNAME', passwordVariable: 'OCP_PASSWORD')]) {
+              sh """
+                oc login ${env.OPENSHIFT_API_URL} --username ${OCP_USERNAME} --password ${OCP_PASSWORD} --insecure-skip-tls-verify
+                oc project ${ocp_project_name}
+                oc process -f openshift_template.yaml -p NAMESPACE=${ocp_project_name} -p REGISTRY=${env.NEXUS_DEV_DOCKER_REGISTRY} -p IMAGE_NAME=${PROJECT_NAME} -p IMAGE_TAG=${ocp_tag_name} -p SERVICE_NAME=${service_name} | oc apply -f - -n ${ocp_project_name}
+                oc import-image ${PROJECT_NAME} --confirm --insecure | grep -i "successfully"
+              """
+            }
+          } catch(e) {
+            error(e)
+          }
+        }
+      }
+    }
+  }
+}
