@@ -5,7 +5,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 
-namespace WebAPIOther
+namespace  WebAPI
 {
     [DataContract(Name = "repo")]
     public class Repository
